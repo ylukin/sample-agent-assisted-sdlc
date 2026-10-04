@@ -3,7 +3,8 @@
 # Usage: cd agentcore-sdlc-inspector && bash setup-env.sh
 
 REGION="${AWS_REGION:-us-west-2}"
-STACK_NAME="${1:-agent-assisted-sdlc-pipeline-assistant}"
+PROJECT=$(sed -nE 's/^project:[[:space:]]*([A-Za-z0-9-]+).*/\1/p' ../sdlc-config.yaml 2>/dev/null)
+STACK_NAME="${1:-${PROJECT:-agent-assisted-sdlc}-assistant}"
 
 echo "Fetching outputs from stack: $STACK_NAME (region: $REGION)..."
 
