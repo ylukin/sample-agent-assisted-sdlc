@@ -83,13 +83,14 @@ The richest record. Use this for cost / token / latency analytics.
 | `speed`                | `normal` / `fast`                |
 | `event.sequence`       | Monotonic counter per session    |
 | `event.timestamp`      | ISO 8601                         |
-| `session.id`           | Claude internal session UUID     |
-|                        | (different from runtime session) |
+| `session.id`           | Runtime session ID (v2.1.288+;   |
+|                        | was Claude's UUID in v2.1.156)   |
 
-Note: each record has TWO session IDs — the **runtime session ID** at the
-**resource** level (groups records across one pipeline run, even across
-multiple `claude` invocations) and Claude's per-invocation UUID at the
-**attribute** level (groups records within one `claude` process).
+Note: in v2.1.156 each record had TWO session IDs — the runtime session ID
+at the **resource** level and Claude's per-invocation UUID at the
+**attribute** level. In v2.1.288 both carry the runtime session ID. Filter
+on `resource.attributes.session.id` (no backticks — Logs Insights flattens
+the nested JSON key into a plain dotted field name).
 
 ## Querying
 
@@ -102,6 +103,22 @@ All queries run against log group:
 
 Replace `<RUNTIME_ID>` and `<SESSION_ID>` below.
 
+To run these from the CLI, use `obs-query.sh`. It takes the TUI command
+copied from the SDLC inspector and extracts the runtime, region and
+session ID from it:
+
+```bash
+pbpaste | ./obs-query.sh events          # events | cost | tools | hooks | models
+pbpaste | ./obs-query.sh cost --all      # invocations | subagents | complexity
+./obs-query.sh tools --since 7d --cmd "agentcore exec --it --runtime arn:... --region us-west-2 --session-id sdlc-..."
+```
+
+If a query matches nothing, run `pbpaste | ./obs-query.sh discover --since 7d`
+to list the log streams and session IDs that actually hold `claude_code.*`
+events, then pass `--stream <name>` if it isn't `otel-rt-logs`.
+
+Keep the queries in `obs-query.sh` in sync when editing the ones below.
+
 ### All events for one pipeline run
 
 ```sql
@@ -110,7 +127,7 @@ fields @timestamp, body,
        attributes.input_tokens, attributes.output_tokens,
        attributes.duration_ms, attributes.prompt.id
 | filter @logStream = "otel-rt-logs"
-| filter resource.attributes.`session.id` = "<SESSION_ID>"
+| filter resource.attributes.session.id = "<SESSION_ID>"
 | sort @timestamp asc
 | limit 200
 ```
@@ -118,7 +135,7 @@ fields @timestamp, body,
 ### Per-session cost rollup
 
 ```sql
-fields resource.attributes.`session.id` as session,
+fields resource.attributes.session.id as session,
        attributes.cost_usd as cost,
        attributes.input_tokens as input_tok,
        attributes.output_tokens as output_tok
@@ -147,7 +164,7 @@ fields attributes.tool_name as tool
 
 ```sql
 fields @timestamp, attributes.tool_name, attributes.decision,
-       attributes.source, resource.attributes.`session.id` as session
+       attributes.source, resource.attributes.session.id as session
 | filter @logStream = "otel-rt-logs"
 | filter body = "claude_code.tool_decision"
 | sort @timestamp desc
@@ -180,16 +197,17 @@ Two ways subagent-like activity shows up in `otel-rt-logs`:
 
 1. **Separate `claude` invocations** — e.g. the strategy runs
    `claude mcp list` then `claude -p "..."`. Each spawns its own Claude
-   process with a distinct `attributes.session.id` UUID, but they share
-   the runtime `resource.attributes.session.id`. To enumerate them:
+   process. As of v2.1.288 `attributes.session.id` carries the runtime
+   session ID (from `OTEL_RESOURCE_ATTRIBUTES`), not a per-process UUID,
+   so it no longer separates them. Each `claude -p` emits exactly one
+   `claude_code.user_prompt`, so list those instead:
 
    ```sql
-   fields attributes.session.id as claude_uuid
+   fields @timestamp, attributes.prompt.id as prompt_id
    | filter @logStream = "otel-rt-logs"
-   | filter resource.attributes.`session.id` = "<RUNTIME_SESSION_ID>"
+   | filter resource.attributes.session.id = "<RUNTIME_SESSION_ID>"
    | filter body = "claude_code.user_prompt"
-   | stats count() as prompts by claude_uuid
-   | sort prompts desc
+   | sort @timestamp asc
    ```
 
 2. **Task tool subagents** (in-process, spawned by the orchestrator on
@@ -201,7 +219,7 @@ Two ways subagent-like activity shows up in `otel-rt-logs`:
           attributes.success as ok, attributes.duration_ms as ms
    | filter @logStream = "otel-rt-logs"
    | filter body = "claude_code.tool_result"
-   | filter resource.attributes.`session.id` = "<RUNTIME_SESSION_ID>"
+   | filter resource.attributes.session.id = "<RUNTIME_SESSION_ID>"
    | filter tool = "Agent"
    | sort @timestamp asc
    ```
@@ -220,7 +238,7 @@ Two ways subagent-like activity shows up in `otel-rt-logs`:
 fields attributes.tool_name as tool
 | filter @logStream = "otel-rt-logs"
 | filter body = "claude_code.tool_result"
-| filter resource.attributes.`session.id` = "<RUNTIME_SESSION_ID>"
+| filter resource.attributes.session.id = "<RUNTIME_SESSION_ID>"
 | filter tool = "Agent"
 | stats count() as subagent_calls
 ```
