@@ -1,0 +1,138 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1290" height="830" viewBox="0 0 1290 830" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif">
+  <title>Agent-Assisted SDLC: issue label state machine</title>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#475569"/>
+    </marker>
+    <marker id="arrow-user" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#2563eb"/>
+    </marker>
+    <marker id="arrow-err" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#dc2626"/>
+    </marker>
+    <style>
+      .lbl { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size: 15px; font-weight: 700; fill: #0f172a; }
+      .sub { font-size: 11px; fill: #334155; }
+      .edge { font-size: 11px; fill: #334155; }
+      .user { font-size: 11px; fill: #1d4ed8; }
+      .flow { fill: none; stroke: #475569; stroke-width: 1.6; }
+      .uflow { fill: none; stroke: #2563eb; stroke-width: 1.6; stroke-dasharray: 6 4; }
+      .eflow { fill: none; stroke: #dc2626; stroke-width: 1.6; }
+    </style>
+  </defs>
+
+  <rect width="1290" height="830" fill="#ffffff"/>
+
+  <!-- Trigger -->
+  <rect x="530" y="50" width="220" height="56" rx="10" fill="#dbeafe" stroke="#2563eb" stroke-width="2"/>
+  <text x="640" y="76" text-anchor="middle" class="lbl">agent:start</text>
+  <text x="640" y="95" text-anchor="middle" class="sub">user-only trigger</text>
+  <text x="762" y="72" class="user">You add this label (the agent is blocked from setting it).</text>
+  <text x="762" y="88" class="user">GitHub Actions → Step Functions: Setup Lambda → Pipeline Lambda</text>
+
+  <!-- Running group -->
+  <rect x="200" y="180" width="880" height="290" rx="14" fill="#f8fafc" stroke="#94a3b8" stroke-width="1.4" stroke-dasharray="4 4"/>
+  <text x="380" y="202" class="edge" font-weight="700">Agent running: one Step Functions execution (≤ 45 min)</text>
+  <text x="380" y="218" class="edge">Re-adding agent:start while the agent is still running is skipped.</text>
+
+  <!-- start -> explore -->
+  <path class="flow" d="M640,106 V140 H360 V270" marker-end="url(#arrow)"/>
+  <text x="500" y="133" text-anchor="middle" class="edge">orchestrator's first action replaces agent:start</text>
+
+  <!-- Running states -->
+  <rect x="260" y="272" width="200" height="56" rx="10" fill="#f1f5f9" stroke="#475569" stroke-width="2"/>
+  <text x="360" y="297" text-anchor="middle" class="lbl">agent:explore</text>
+  <text x="360" y="316" text-anchor="middle" class="sub">read code · re-run: check PR</text>
+
+  <rect x="540" y="272" width="200" height="56" rx="10" fill="#f1f5f9" stroke="#475569" stroke-width="2"/>
+  <text x="640" y="297" text-anchor="middle" class="lbl">agent:implement</text>
+  <text x="640" y="316" text-anchor="middle" class="sub">code · test · push · PR</text>
+
+  <rect x="820" y="272" width="200" height="56" rx="10" fill="#f1f5f9" stroke="#475569" stroke-width="2"/>
+  <text x="920" y="297" text-anchor="middle" class="lbl">agent:critique</text>
+  <text x="920" y="316" text-anchor="middle" class="sub">review diff (complex only)</text>
+
+  <!-- explore -> implement -->
+  <path class="flow" d="M460,300 H538" marker-end="url(#arrow)"/>
+  <text x="500" y="290" text-anchor="middle" class="edge">no questions</text>
+  <text x="500" y="318" text-anchor="middle" class="edge">or simple</text>
+
+  <!-- implement <-> critique -->
+  <path class="flow" d="M740,291 H818" marker-end="url(#arrow)"/>
+  <text x="780" y="283" text-anchor="middle" class="edge">complex</text>
+  <path class="flow" d="M820,310 H742" marker-end="url(#arrow)"/>
+  <text x="780" y="326" text-anchor="middle" class="edge">not LGTM: fix</text>
+
+  <!-- Halted / terminal states -->
+  <rect x="240" y="592" width="240" height="56" rx="10" fill="#fef3c7" stroke="#d97706" stroke-width="2"/>
+  <text x="360" y="617" text-anchor="middle" class="lbl">agent:need-clarification</text>
+  <text x="360" y="636" text-anchor="middle" class="sub">questions posted · halted</text>
+
+  <rect x="520" y="592" width="240" height="56" rx="10" fill="#dcfce7" stroke="#16a34a" stroke-width="2"/>
+  <text x="640" y="617" text-anchor="middle" class="lbl">agent:pr-completed</text>
+  <text x="640" y="636" text-anchor="middle" class="sub">PR open or merged · success</text>
+
+  <rect x="1090" y="500" width="180" height="56" rx="10" fill="#fee2e2" stroke="#dc2626" stroke-width="2"/>
+  <text x="1180" y="525" text-anchor="middle" class="lbl">agent:error</text>
+  <text x="1180" y="544" text-anchor="middle" class="sub">error comment posted</text>
+
+  <!-- explore -> need-clarification -->
+  <path class="flow" d="M330,328 V590" marker-end="url(#arrow)"/>
+  <text x="320" y="520" text-anchor="end" class="edge">complex + open</text>
+  <text x="320" y="535" text-anchor="end" class="edge">questions</text>
+
+  <!-- explore -> pr-completed (re-run, already merged) -->
+  <path class="flow" d="M430,328 V570 H590 V590" marker-end="url(#arrow)"/>
+  <text x="440" y="520" class="edge">re-run: PR</text>
+  <text x="440" y="535" class="edge">already merged</text>
+
+  <!-- implement -> pr-completed -->
+  <path class="flow" d="M640,328 V590" marker-end="url(#arrow)"/>
+  <text x="650" y="520" class="edge">PR created</text>
+  <text x="650" y="535" class="edge">(or already open)</text>
+
+  <!-- critique -> pr-completed -->
+  <path class="flow" d="M920,328 V620 H762" marker-end="url(#arrow)"/>
+  <text x="930" y="520" class="edge">LGTM →</text>
+  <text x="930" y="535" class="edge">PR created</text>
+
+  <!-- any running stage -> error -->
+  <circle cx="1080" cy="420" r="3.5" fill="#dc2626"/>
+  <path class="eflow" d="M1080,420 H1180 V498" marker-end="url(#arrow-err)"/>
+  <text x="1092" y="355" class="edge">from any running stage:</text>
+  <text x="1092" y="370" class="edge">fatal error, MCP fail ×2,</text>
+  <text x="1092" y="385" class="edge">push/PR fail ×2,</text>
+  <text x="1092" y="400" class="edge">prompt injection,</text>
+  <text x="1092" y="415" class="edge">PR closed unmerged</text>
+
+  <!-- User re-trigger loop -->
+  <path class="uflow" d="M360,648 V730"/>
+  <path class="uflow" d="M640,648 V730"/>
+  <path class="uflow" d="M1180,556 V730"/>
+  <path class="uflow" d="M1180,730 H60 V78 H528" marker-end="url(#arrow-user)"/>
+
+  <text x="368" y="680" class="user">Answer the questions in a comment,</text>
+  <text x="368" y="695" class="user">then re-add agent:start</text>
+  <text x="648" y="680" class="user">Leave feedback on the issue or PR,</text>
+  <text x="648" y="695" class="user">then re-add agent:start</text>
+  <text x="1170" y="680" text-anchor="end" class="user">Fix the cause (e.g. reopen the PR),</text>
+  <text x="1170" y="695" text-anchor="end" class="user">then re-add agent:start</text>
+  <text x="48" y="400" text-anchor="middle" class="user" transform="rotate(-90 48 400)">You re-add agent:start (a comment alone does nothing)</text>
+
+  <!-- Legend -->
+  <g font-size="11" fill="#334155">
+    <rect x="200" y="770" width="16" height="12" rx="3" fill="#dbeafe" stroke="#2563eb"/>
+    <text x="222" y="780">user trigger</text>
+    <rect x="320" y="770" width="16" height="12" rx="3" fill="#f1f5f9" stroke="#475569"/>
+    <text x="342" y="780">running</text>
+    <rect x="420" y="770" width="16" height="12" rx="3" fill="#fef3c7" stroke="#d97706"/>
+    <text x="442" y="780">halted (waiting on you)</text>
+    <rect x="590" y="770" width="16" height="12" rx="3" fill="#dcfce7" stroke="#16a34a"/>
+    <text x="612" y="780">success</text>
+    <rect x="690" y="770" width="16" height="12" rx="3" fill="#fee2e2" stroke="#dc2626"/>
+    <text x="712" y="780">failure</text>
+    <line x1="790" y1="776" x2="830" y2="776" stroke="#2563eb" stroke-width="1.6" stroke-dasharray="6 4"/>
+    <text x="838" y="780">your action</text>
+    <text x="200" y="805">Labels are replace-all: only one is active at a time. Prefix "agent" is configurable via projectManagement.github.labelPrefix.</text>
+  </g>
+</svg>

@@ -32,6 +32,22 @@ Developer adds label ──► Connector (GitHub Actions / webhook)
                      (read issue, post comments, set labels)
 ```
 
+## Label State Machine
+
+The coding assistant reports progress by replacing the issue's single `agent:*` label. Only a human may set `agent:start`. Add it to start a run, and re-add it after commenting to resume from `agent:need-clarification`, `agent:pr-completed`, or `agent:error`. The `agent` prefix is configurable via `projectManagement.github.labelPrefix`.
+
+![Label state machine](./label-state-machine.svg)
+
+| Label | Set by | Meaning |
+|-------|--------|---------|
+| `agent:start` | User only | Triggers the pipeline (blocked for the agent by `label-governance.sh`) |
+| `agent:explore` | Agent | Run started; exploring the codebase / checking an existing PR |
+| `agent:need-clarification` | Agent | Questions posted on the issue; halted until the user answers and re-adds `agent:start` |
+| `agent:implement` | Agent | Writing code, running tests, pushing, opening the PR |
+| `agent:critique` | Agent | Reviewing the diff (complex issues only) |
+| `agent:pr-completed` | Agent | Terminal success: PR created or already merged |
+| `agent:error` | Agent | Terminal failure: error comment posted |
+
 ## Useful MCP Tools
 
 Tools that a project management MCP server typically exposes:
@@ -39,9 +55,9 @@ Tools that a project management MCP server typically exposes:
 | Tool | Description |
 |------|-------------|
 | `issue_read` | Get issue details (title, body, comments) |
-| `issue_write` | Update issue title or body |
+| `issue_write` | Update issue title, body, or labels (labels are replace-all) |
 | `add_issue_comment` | Post a progress comment on the issue |
-| `set_labels` | Set status labels (`stage:exploring`, `state:pr-created`) |
+| `set_labels` | Set status labels (`agent:explore`, `agent:pr-completed`; see [Label State Machine](#label-state-machine)) |
 | `list_issues` | List/filter issues in a project |
 
 ## Adding a New Project Management Platform
