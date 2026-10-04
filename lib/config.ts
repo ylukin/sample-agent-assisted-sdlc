@@ -32,6 +32,9 @@ export interface GitHubSourceControlConfig {
   maxLifetime?: number;
   privateRepo?: boolean;
   allowedRepos: string[];
+  // Immutable OIDC subject prefixes ("owner@ownerId/repo@repoId") for repos
+  // with GitHub's use_immutable_subject enabled. Added to the OIDC trust policy only.
+  allowedRepoSubjects?: string[];
 }
 
 export interface SourceControlConfig {

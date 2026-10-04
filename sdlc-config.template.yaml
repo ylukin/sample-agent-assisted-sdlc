@@ -50,6 +50,12 @@ sourceControl:
     allowedRepos:                 # Required: exact repos that can trigger the pipeline
       - "myorg/repo-a"
       - "myorg/repo-b"
+    # allowedRepoSubjects:        # Optional: for repos with GitHub's immutable OIDC subject enabled.
+    #   - "myorg@1234567/repo-a@89012345"
+                                  # Get the value from sub_claim_prefix (without "repo:") in:
+                                  #   gh api repos/<owner>/<repo>/actions/oidc/customization/sub
+                                  # If use_immutable_subject is true and this is missing, GitHub Actions
+                                  # fails with "Not authorized to perform sts:AssumeRoleWithWebIdentity".
 
 # ─── Project Management ──────────────────────────────────
 # Platform for issue tracking. Deploys an MCP server with issue operations

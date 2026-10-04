@@ -301,7 +301,19 @@ export class AssistantStack extends cdk.Stack {
           "List the repos that can trigger the pipeline (e.g., ['myorg/repo-a', 'myorg/repo-b']).",
         );
       }
-      const subConditions = allowedRepos.map(r => `repo:${r}:*`);
+      // Repos with GitHub's immutable OIDC subject enabled send
+      // "repo:owner@ownerId/repo@repoId:..." instead of "repo:owner/repo:...".
+      // Require exact IDs (no wildcards) so the trust policy can't be broadened.
+      const allowedRepoSubjects = config.sourceControl.github?.allowedRepoSubjects ?? [];
+      for (const s of allowedRepoSubjects) {
+        if (!/^[A-Za-z0-9_.-]+@\d+\/[A-Za-z0-9_.-]+@\d+$/.test(s)) {
+          throw new Error(
+            `sourceControl.github.allowedRepoSubjects entry "${s}" is invalid. ` +
+            "Expected \"owner@ownerId/repo@repoId\" (see GET /repos/{owner}/{repo}/actions/oidc/customization/sub).",
+          );
+        }
+      }
+      const subConditions = [...allowedRepos, ...allowedRepoSubjects].map(r => `repo:${r}:*`);
 
       const ghActionsRole = new iam.Role(this, "GitHubActionsRole", {
         assumedBy: new iam.FederatedPrincipal(
